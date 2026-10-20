@@ -9,7 +9,7 @@
 | Integrantes | 1. DANIEL ISAI CHIRIBOGA ZURITA<br> 2. PEDRO ISAAC MAISINCHO PAUCAR<br> 3.ERICK ALEJANDRO SILVA CULQUI<br> |
 | NRC |36878 |
 | Fecha | 19/10/2026 |
-| Repositorio | (enlace) |
+| Repositorio | https://github.com/easilva5-hub/G5_Lab1_SILENClothing |
 
 ## Cómo ejecutar
 
