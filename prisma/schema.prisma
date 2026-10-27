@@ -1,0 +1,41 @@
+// Lab 2 · Persistencia con Prisma 7 + PostgreSQL
+// Grupo: G5 · Emprendimiento: SILEN Clothing
+// Cada model es una tabla; cada campo, una columna.
+// Tras cualquier cambio: npx prisma migrate dev --name <cambio>  y luego  npx prisma generate
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Prisma 7: la URL de conexión ya no va aquí; vive en prisma.config.ts
+datasource db {
+  provider = "postgresql"
+}
+
+// Entidad principal (la del Lab 1): inventario de prendas de SILEN Clothing.
+// El campo `categoria` conserva el texto del Lab 1 para no romper el contrato de la API;
+// en el Lab 3 pasará a ser una relación (categoriaId → Categoria).
+model Prenda {
+  id        Int      @id @default(autoincrement())
+  nombre    String   @unique @db.VarChar(80)
+  precio    Float
+  stock     Int      @default(0)
+  talla     String?  @db.VarChar(10)
+  categoria String?  @db.VarChar(40)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("prendas")
+}
+
+// Segunda entidad del modelo ER (Lab 2: todavía SIN @relation; las relaciones se agregan en el Lab 3).
+model Categoria {
+  id          Int      @id @default(autoincrement())
+  nombre      String   @unique @db.VarChar(40)
+  descripcion String?  @db.VarChar(200)
+  activa      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("categorias")
+}
