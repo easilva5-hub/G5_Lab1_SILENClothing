@@ -1,5 +1,5 @@
 /*
- * · Laboratorio 1 · Mini-API MVC con CRUD
+ * · Laboratorio 2 · API MVC con Prisma 7 + PostgreSQL (evolución del Lab 1)
  * · Desarrollo Web Avanzado (A0R04) · ESPE
  * · Grupo: G5 
  * · Emprendimiento: SILEN Clothing
@@ -22,7 +22,7 @@ app.use(express.json()); // reemplaza a body-parser: llena req.body con el JSON 
 app.use(logger);
 
 // 2. Rutas: todas cuelgan del prefijo /api (ver routes/index.js)
-app.get("/", (req, res) => res.json({ api: "Lab 1 · Mini-API MVC", estado: "ok" }));
+app.get("/", (req, res) => res.json({ api: "Lab 3 · Relaciones, autenticación y despliegue de API + PostgreSQL", estado: "ok" }));
 app.use("/api", routes);
 
 // 3. Middlewares que actúan DESPUÉS: ruta no encontrada y manejo de errores (siempre al final)

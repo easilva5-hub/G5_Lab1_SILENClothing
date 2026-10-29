@@ -1,17 +1,8 @@
-
-const { Router } = require("express");
-const prendaController = require("../controllers/prenda.controller");
-
-// RUTAS: conectan cada verbo + URL con una acción del controlador
-const router = Router();
-
-// ✅ Ya resueltas
-router.get("/", prendaController.list);
-router.get("/:id", prendaController.getById);
-
-// TODO Paso 2: agrega POST "/" → create, PUT "/:id" → update y DELETE "/:id" → remove
-router.post("/", prendaController.create);
-router.put("/:id", prendaController.update);
-router.delete("/:id", prendaController.remove);
-
-module.exports = router;
+const {Router}=require("express");
+const c=require("../controllers/prenda.controller");
+const {authenticateToken,requireRole}=require("../middlewares/auth");
+const router=Router();const admin=[authenticateToken,requireRole("ADMIN")];
+router.get("/",c.list);router.get("/:id",c.getById);
+router.post("/",admin,c.create);router.post("/lote",admin,c.createMany);
+router.put("/:id",admin,c.update);router.delete("/:id",admin,c.remove);
+module.exports=router;

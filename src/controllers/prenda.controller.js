@@ -59,4 +59,20 @@ const remove = async (req, res, next) => {
   }
 };
 
-module.exports = { list, getById, create, update, remove };
+// POST /lote → crea varias prendas en una transacción: todas o ninguna. 201 con las prendas creadas.
+const MAX_LOTE = 100; // evita transacciones enormes (Prisma cancela las de más de unos segundos)
+const createMany = async (req, res, next) => {
+  try {
+    if (!Array.isArray(req.body) || req.body.length === 0)
+      throw new HttpError(400, "El cuerpo debe ser un arreglo con al menos una prenda");
+    if (req.body.length > MAX_LOTE)
+      throw new HttpError(400, `El lote no puede superar ${MAX_LOTE} prendas`);
+
+    const items = await prendaService.createMany(req.body);
+    res.status(201).json(items);
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { list, getById, create, update, remove, createMany };

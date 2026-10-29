@@ -1,27 +1,33 @@
+const { Prisma } = require("@prisma/client");
 
- // Manejador de errores: 4 parámetros. Responde siempre en JSON.
+// Traduce los errores conocidos de Prisma a códigos HTTP
+const fromPrisma = (err) => {
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    if (err.code === "P2002") {
+      // Prisma 7 (con adaptador) informa la restricción en meta.driverAdapterError
+      const campo = err.meta?.target ?? err.meta?.driverAdapterError?.cause?.constraint?.index ?? "campo único";
+      return { status: 409, message: `Ya existe un registro con ese valor único (${campo})` };
+    }
+    if (err.code === "P2025") return { status: 404, message: "Registro no encontrado" };
+    // FK con onDelete: Restrict → no se puede borrar un registro que otros usan
+    if (err.code === "P2003") return { status: 409, message: "No se puede eliminar: hay registros relacionados" };
+  }
+  if (err instanceof Prisma.PrismaClientValidationError) return { status: 400, message: "Datos con tipo o formato inválido" };
+  return null;
+};
+
+// Manejador de errores: 4 parámetros. Responde siempre en JSON.
 const errorHandler = (err, req, res, next) => {
-  let status = err.status || err.statusCode || 500;
-  // TODO Paso 3:
-  //  a) Si el body trae JSON mal formado (err.type === "entity.parse.failed") responde 400.
-  //  b) Si status es 500, responde "Error interno del servidor" y agrega err.stack
-  //     solo cuando process.env.NODE_ENV !== "production".
-
-  if (err.type === "entity.parse.failed") {
-    status = 400;
+  const mapped = fromPrisma(err);
+  // JSON mal formado en el body → 400
+  const status = mapped?.status ?? (err.type === "entity.parse.failed" ? 400 : err.status || 500);
+  const body = { error: status === 500 ? "Error interno del servidor" : mapped?.message ?? err.message };
+  if (status === 500) {
+    console.error(err);
+    // En desarrollo se muestra el detalle; en producción, nunca
+    if (process.env.NODE_ENV !== "production") body.stack = err.stack;
   }
-
-  const message = status === 500
-    ? "Error interno del servidor"
-    : err.message;
-
-  const response = { error: message };
-
-  if (status === 500 && process.env.NODE_ENV !== "production") {
-    response.stack = err.stack;
-  }
-
-  res.status(status).json(response);
+  res.status(status).json(body);
 };
 
 module.exports = errorHandler;

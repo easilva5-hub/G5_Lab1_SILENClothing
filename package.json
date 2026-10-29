@@ -1,17 +1,30 @@
 {
-  "name": "lab1-mini-api-mvc",
+  "name": "g5-lab3-silenclothing",
   "version": "1.0.0",
-  "description": "Laboratorio 1 · Desarrollo Web Avanzado · Mini-API MVC con CRUD para el emprendimiento del grupo",
+  "description": "Laboratorio 2 · Desarrollo Web Avanzado · API MVC de SILEN Clothing con Prisma 7 + PostgreSQL",
   "main": "src/server.js",
   "scripts": {
     "dev": "node --watch src/server.js",
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:generate": "prisma generate",
+    "db:seed": "prisma db seed",
+    "db:studio": "prisma studio",
+    "db:reset": "prisma migrate reset"
   },
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
+    "@prisma/adapter-pg": "7.10.1",
+    "@prisma/client": "7.10.1",
     "dotenv": "^16.4.5",
-    "express": "^4.21.2"
-  }
+    "express": "^4.21.2",
+    "pg": "8.23.1",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "prisma": "7.10.1"
+  },
+  "devDependencies": {}
 }
