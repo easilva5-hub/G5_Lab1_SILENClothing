@@ -42,6 +42,7 @@ model Categoria {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   prendas Prenda[]
+  prendasEtiquetadas Prenda[] @relation("PrendaCategorias")
   @@map("categorias")
 }
 model Prenda {
@@ -53,6 +54,7 @@ model Prenda {
   categoria String? @db.VarChar(40)
   categoriaId Int? @map("categoria_id")
   categoriaRelacion Categoria? @relation(fields: [categoriaId],references:[id],onDelete:SetNull)
+  categorias Categoria[] @relation("PrendaCategorias")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   items OrderItem[]

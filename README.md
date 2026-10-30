@@ -219,3 +219,24 @@ Ejecutar primero los logins de ADMIN y USER. Los scripts de la colección guarda
 - **Herramienta utilizada:**.
 - **Para qué se utilizó:** apoyo para comprender la arquitectura por capas con Express y Prisma, adaptar el kit del Lab 3 al emprendimiento SILEN Clothing, preparar código de autenticación y autorización, diseñar las relaciones, plantear las operaciones de pedidos con transacciones, construir consultas administrativas, organizar pruebas de Postman y redactar documentación.
 - **Qué corresponde verificar al equipo:** revisar el código, configurar PostgreSQL, aplicar las migraciones, ejecutar seed y endpoints, validar los códigos HTTP, comprobar la reversión de stock, ejecutar la colección de Postman y generar las evidencias. No se declara aquí que todas esas pruebas ya estén aprobadas.
+
+---
+
+## Taller · Tarjeta B · Categorías y búsqueda avanzada · Daniel Isai Chiriboga Zurita
+
+### Contrato REST (tarjeta B)
+
+| Método | Ruta | Rol | Body / Query | Éxito | Errores |
+|---|---|---|---|---|---|
+| POST | `/api/categories` | ADMIN | `{ "name": "Streetwear" }` | 201 `{id,name}` | 400 nombre vacío / largo, 401 sin token, 403 USER, 409 duplicado |
+| GET | `/api/categories` | Público | — | 200 `[{id,name,_count:{products:n}}]` | — |
+| PUT | `/api/products/:id/categories` | ADMIN | `{ "categoryIds": [1,2] }` | 200 prenda con `categories` | 400 lista inválida, 401 sin token, 403 USER, 404 prenda o categoría inexistente |
+| GET | `/api/products/search` | Público | `q`, `category`, `min`, `max`, `sort`, `page`, `limit` | 200 `{page,limit,total,pages,data}` | 400 filtros / orden / paginación inválidos |
+| GET | `/api/categories/:id/products` | Público (reto opcional) | `page`, `limit` | 200 `{category,page,limit,total,pages,data}` | 400 paginación / id inválido, 404 categoría inexistente |
+
+**Búsqueda:** `q` contiene sin distinguir mayúsculas (`contains` + `mode: "insensitive"`), `category` busca por el nombre mediante `categorias: { some: { nombre: ... } }`, `min`/`max` filtran el precio Decimal inclusivo. `sort`: `price_asc`, `price_desc` o `name` (predeterminado). `page` empieza en 1 y `limit` vale 10 por defecto (máximo 100). El catálogo se pagina con `skip/take` y calcula `total` con `count`.
+
+**Modelo:** no se introduce una nueva tabla `Product`: `Product` de la tarjeta corresponde a `Prenda` de SILEN Clothing. Se conserva el modelo `Categoria` existente (tabla `categorias`, atributo `nombre`) y su enlace antiguo `categoriaId` 1:N con `onDelete: SetNull`. La nueva relación `Categoria.prendasEtiquetadas` ↔ `Prenda.categorias` es **N:M implícita**, con `@relation("PrendaCategorias")` en ambos lados. Prisma administra automáticamente la tabla de unión y sus enlaces; **no se declara un `onDelete` explícito en la N:M implícita**. El borrado de una categoría elimina sus asociaciones de la unión, pero no borra prendas. El contrato HTTP usa `name` aunque la columna y el atributo Prisma se llamen `nombre`.
+
+**Capas:** `src/routes/category.routes.js`, `product.routes.js` → `src/controllers/category.controller.js` → `src/services/category.service.js` → Prisma/PostgreSQL. Los errores del servicio se expresan mediante `HttpError`; duplicados Prisma `P2002` llegan a `errorHandler` como HTTP 409. Las rutas ADMIN usan `authenticateToken` y `requireRole("ADMIN")`.
+
