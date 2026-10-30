@@ -1,4 +1,3 @@
-
 const prisma = require("../db/prisma");
 const HttpError = require("../utils/httpError");
 

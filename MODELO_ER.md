@@ -1,32 +1,68 @@
-# Modelo entidad-relación · SILEN Clothing · Lab 3
+# Modelo ER del emprendimiento · Grupo G5 · SILEN Clothing
+
+> Actividad 3 de la sesión 4. Es la base del `schema.prisma` del Lab 2 y de las relaciones del Lab 3.
+
+## Diagrama
 
 ```mermaid
 erDiagram
- USER ||--|| CUSTOMER : tiene
- CUSTOMER ||--o{ ORDER : realiza
- ORDER ||--|{ ORDER_ITEM : contiene
- PRENDA ||--o{ ORDER_ITEM : aparece
- CATEGORIA |o--o{ PRENDA : clasifica
+    CATEGORIA ||--o{ PRENDA : clasifica
+    CLIENTE ||--o{ VENTA : realiza
+    PRENDA ||--o{ VENTA : "se vende en"
+
+    CATEGORIA {
+        int id PK
+        varchar40 nombre UK
+        varchar200 descripcion "opcional"
+        boolean activa "default true"
+        datetime created_at
+        datetime updated_at
+    }
+    PRENDA {
+        int id PK
+        varchar80 nombre UK
+        float precio "mayor que 0"
+        int stock "default 0"
+        varchar10 talla "opcional"
+        varchar40 categoria "opcional · en el Lab 3 pasa a categoriaId FK"
+        datetime created_at
+        datetime updated_at
+    }
+    CLIENTE {
+        int id PK
+        varchar80 nombre
+        varchar120 correo UK
+        varchar20 telefono "opcional"
+    }
+    VENTA {
+        int id PK
+        datetime fecha
+        int cantidad "mayor que 0"
+        float total
+        int clienteId FK
+        int prendaId FK
+    }
 ```
 
-| Relación | Cardinalidad | onDelete y justificación |
-|---|---|---|
-| User–Customer | 1:1, `customer.userId @unique` | `Cascade`: elimina el perfil al eliminar al usuario. |
-| Customer–Order | 1:N | `Restrict`: conserva historial y evita borrar clientes con pedidos. |
-| Order–OrderItem | 1:N | `Cascade`: elimina líneas si se elimina el pedido. |
-| Prenda–OrderItem | 1:N (Order–Prenda es N:M) | `Restrict`: impide eliminar una prenda con historial de compras. |
-| Categoria–Prenda | 1:N | `SetNull`: elimina la categoría sin borrar inventario. |
+## Entidades
 
-`OrderItem` modela N:M explícita y guarda `quantity` y `unitPrice` como precio histórico. `Role` y `OrderStatus` son enums. `Prenda.precio`, `Order.total` y `OrderItem.unitPrice` usan Decimal(10,2); las fechas usan DateTime. Hay índice compuesto `[status, createdAt]`, clave compuesta `[orderId,prendaId]`, campos `@map` y tablas `@@map` snake_case. El campo de texto `categoria` original se conserva por compatibilidad y `categoriaId` agrega la FK real.
+| Entidad | Atributos (tipo) | Clave primaria | Únicos / obligatorios / reglas |
+|---|---|---|---|
+| **Prenda** (`prendas`) | id (Int), nombre (VarChar 80), precio (Float), stock (Int), talla (VarChar 10), categoria (VarChar 40), created_at, updated_at (DateTime) | `id` autoincremental | `nombre` único y obligatorio (3–80 caracteres) · `precio` obligatorio y mayor que 0 · `stock` entero ≥ 0, por defecto 0 · `talla` y `categoria` opcionales |
+| **Categoria** (`categorias`) | id (Int), nombre (VarChar 40), descripcion (VarChar 200), activa (Boolean), created_at, updated_at (DateTime) | `id` autoincremental | `nombre` único y obligatorio · `descripcion` opcional · `activa` por defecto `true` |
+| **Cliente** (`clientes`) | id (Int), nombre (VarChar 80), correo (VarChar 120), telefono (VarChar 20) | `id` autoincremental | `correo` único y obligatorio · `telefono` opcional |
+| **Venta** (`ventas`) | id (Int), fecha (DateTime), cantidad (Int), total (Float), clienteId (Int), prendaId (Int) | `id` autoincremental | `cantidad` mayor que 0 · `clienteId` y `prendaId` obligatorios (claves foráneas) |
 
-## Taller · Tarjeta B: categorización múltiple
+## Relaciones
 
-- **Prenda ↔ Categoria: N:M implícita (`PrendaCategorias`)**. Una prenda puede pertenecer a varias categorías y cada categoría puede incluir varias prendas. Prisma genera y administra automáticamente la tabla intermedia; no se especifica `onDelete` en una N:M implícita. Al eliminar una categoría se eliminan los enlaces de la tabla intermedia, no las prendas.
-- **Prenda → Categoria (categoría principal): N:1 legado del Lab 3**, mediante `categoriaId` opcional; `onDelete: SetNull` mantiene prendas existentes si se borra la categoría principal. Se conserva para compatibilidad.
-- Las relaciones son distintas y están separadas por el nombre `@relation("PrendaCategorias")` de la N:M.
+| Entidad A | Cardinalidad (1:1, 1:N, N:M) | Entidad B | Ejemplo en una frase |
+|---|---|---|---|
+| Categoria | 1:N | Prenda | Una categoría («Camisetas») agrupa muchas prendas; cada prenda pertenece a una sola categoría. |
+| Cliente | 1:N | Venta | Un cliente puede realizar muchas ventas; cada venta es de un solo cliente. |
+| Prenda | 1:N | Venta | Una prenda aparece en muchas ventas; cada venta registra una sola prenda (con su `cantidad`). |
+| Cliente | N:M (a través de Venta) | Prenda | Un cliente compra muchas prendas distintas y una prenda es comprada por muchos clientes; `Venta` es la tabla intermedia. |
 
-```mermaid
-erDiagram
-    PRENDA }o--o{ CATEGORIA : "N:M etiquetas (PrendaCategorias)"
-    PRENDA }o--o| CATEGORIA : "N:1 principal (SetNull)"
-```
+## ¿Qué se implementa en cada laboratorio?
+
+- **Lab 2:** la entidad principal **Prenda** y una segunda entidad **Categoria** en `prisma/schema.prisma`, **sin relaciones** (sin `@relation`). Por eso `Prenda.categoria` sigue siendo un texto, igual que en el Lab 1, y la API no cambia su contrato.
+- **Lab 3:** las relaciones (`@relation`), las claves foráneas (`Prenda.categoriaId`, `Venta.clienteId`, `Venta.prendaId`) y las entidades restantes **Cliente** y **Venta**.

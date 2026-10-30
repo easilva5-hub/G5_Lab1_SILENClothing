@@ -1,4 +1,3 @@
-
 const prisma = require("../db/prisma");
 const HttpError = require("../utils/httpError");
 
@@ -68,7 +67,7 @@ const listOrders = async ({ status, from, to, page, limit } = {}) => {
   return { page: p, limit: l, total, pages: Math.ceil(total / l), data };
 };
 
-// Tarjeta C: cambiar el estado y guardar el historial
+// Tarjeta C: cambiar el estado, validar transiciones y guardar el historial
 const updateOrderStatus = async (id, status, changedById, note) => {
   if (status === undefined)
     throw new HttpError(400, "Envía status");

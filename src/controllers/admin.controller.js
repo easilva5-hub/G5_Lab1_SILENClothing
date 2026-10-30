@@ -1,4 +1,3 @@
-
 const adminService = require("../services/admin.service");
 const HttpError = require("../utils/httpError");
 
@@ -11,7 +10,7 @@ const listOrders = async (req, res, next) => {
   }
 };
 
-// PATCH /api/admin/orders/:id/status  { "status": "DELIVERED" }
+// PATCH /api/admin/orders/:id/status  { "status": "DELIVERED", "note": "opcional" }
 const updateOrderStatus = async (req, res, next) => {
   try {
     const id = Number.parseInt(req.params.id, 10);
@@ -20,7 +19,7 @@ const updateOrderStatus = async (req, res, next) => {
     res.json(await adminService.updateOrderStatus(
       id,
       req.body?.status,
-      req.user.id,
+      req.user?.id,
       req.body?.note
     ));
   } catch (err) {

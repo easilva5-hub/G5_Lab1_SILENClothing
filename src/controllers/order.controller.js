@@ -1,4 +1,3 @@
-
 const orderService = require("../services/order.service");
 const HttpError = require("../utils/httpError");
 
@@ -42,7 +41,7 @@ const getHistory = async (req, res, next) => {
       req.user.id,
       req.user.role,
       parseId(req)
-    ));a
+    ));
   } catch (err) {
     next(err);
   }
