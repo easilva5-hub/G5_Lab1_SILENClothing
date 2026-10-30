@@ -1,3 +1,4 @@
+
 const adminService = require("../services/admin.service");
 const HttpError = require("../utils/httpError");
 
@@ -15,7 +16,13 @@ const updateOrderStatus = async (req, res, next) => {
   try {
     const id = Number.parseInt(req.params.id, 10);
     if (Number.isNaN(id)) throw new HttpError(400, "El id debe ser numérico");
-    res.json(await adminService.updateOrderStatus(id, req.body?.status));
+
+    res.json(await adminService.updateOrderStatus(
+      id,
+      req.body?.status,
+      req.user.id,
+      req.body?.note
+    ));
   } catch (err) {
     next(err);
   }

@@ -1,18 +1,24 @@
+
 generator client {
   provider = "prisma-client-js"
 }
+
 datasource db {
   provider = "postgresql"
 }
+
 enum Role {
   USER
   ADMIN
 }
+
 enum OrderStatus {
   PENDING
+  CONFIRMED
   DELIVERED
   CANCELLED
 }
+
 model User {
   id Int @id @default(autoincrement())
   email String @unique @db.VarChar(120)
@@ -21,8 +27,13 @@ model User {
   role Role @default(USER)
   createdAt DateTime @default(now()) @map("created_at")
   customer Customer?
+
+  // Tarjeta C: historial de cambios realizados por el usuario
+  statusChanges OrderStatusHistory[]
+
   @@map("users")
 }
+
 model Customer {
   id Int @id @default(autoincrement())
   fullName String @map("full_name") @db.VarChar(100)
@@ -32,8 +43,10 @@ model Customer {
   userId Int @unique @map("user_id")
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   orders Order[]
+
   @@map("customers")
 }
+
 model Categoria {
   id Int @id @default(autoincrement())
   nombre String @unique @db.VarChar(40)
@@ -42,8 +55,10 @@ model Categoria {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   prendas Prenda[]
+
   @@map("categorias")
 }
+
 model Prenda {
   id Int @id @default(autoincrement())
   nombre String @unique @db.VarChar(80)
@@ -52,32 +67,56 @@ model Prenda {
   talla String? @db.VarChar(10)
   categoria String? @db.VarChar(40)
   categoriaId Int? @map("categoria_id")
-  categoriaRelacion Categoria? @relation(fields: [categoriaId],references:[id],onDelete:SetNull)
+  categoriaRelacion Categoria? @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   items OrderItem[]
+
   @@index([categoriaId])
   @@map("prendas")
 }
+
 model Order {
   id Int @id @default(autoincrement())
   status OrderStatus @default(PENDING)
   total Decimal @db.Decimal(10,2)
   createdAt DateTime @default(now()) @map("created_at")
   customerId Int @map("customer_id")
-  customer Customer @relation(fields:[customerId],references:[id],onDelete:Restrict)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
   items OrderItem[]
+
+  // Tarjeta C: cambios de estado del pedido
+  history OrderStatusHistory[]
+
   @@index([customerId])
-  @@index([status,createdAt])
+  @@index([status, createdAt])
   @@map("orders")
 }
+
 model OrderItem {
   orderId Int @map("order_id")
   prendaId Int @map("prenda_id")
   quantity Int
   unitPrice Decimal @map("unit_price") @db.Decimal(10,2)
-  order Order @relation(fields:[orderId],references:[id],onDelete:Cascade)
-  prenda Prenda @relation(fields:[prendaId],references:[id],onDelete:Restrict)
-  @@id([orderId,prendaId])
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  prenda Prenda @relation(fields: [prendaId], references: [id], onDelete: Restrict)
+
+  @@id([orderId, prendaId])
   @@map("order_items")
+}
+
+// Tarjeta C: historial de estados de los pedidos
+model OrderStatusHistory {
+  id Int @id @default(autoincrement())
+  orderId Int @map("order_id")
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  fromStatus OrderStatus @map("from_status")
+  toStatus OrderStatus @map("to_status")
+  note String? @db.VarChar(200)
+  changedById Int @map("changed_by_id")
+  changedBy User @relation(fields: [changedById], references: [id], onDelete: Restrict)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([orderId])
+  @@map("order_status_history")
 }
