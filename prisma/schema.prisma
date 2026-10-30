@@ -1,41 +1,101 @@
-// Lab 2 · Persistencia con Prisma 7 + PostgreSQL
-// Grupo: G5 · Emprendimiento: SILEN Clothing
-// Cada model es una tabla; cada campo, una columna.
-// Tras cualquier cambio: npx prisma migrate dev --name <cambio>  y luego  npx prisma generate
-
 generator client {
   provider = "prisma-client-js"
 }
-
-// Prisma 7: la URL de conexión ya no va aquí; vive en prisma.config.ts
 datasource db {
   provider = "postgresql"
 }
-
-// Entidad principal (la del Lab 1): inventario de prendas de SILEN Clothing.
-// El campo `categoria` conserva el texto del Lab 1 para no romper el contrato de la API;
-// en el Lab 3 pasará a ser una relación (categoriaId → Categoria).
-model Prenda {
-  id        Int      @id @default(autoincrement())
-  nombre    String   @unique @db.VarChar(80)
-  precio    Float
-  stock     Int      @default(0)
-  talla     String?  @db.VarChar(10)
-  categoria String?  @db.VarChar(40)
+enum Role {
+  USER
+  ADMIN
+}
+enum OrderStatus {
+  PENDING
+  DELIVERED
+  CANCELLED
+}
+model User {
+  id Int @id @default(autoincrement())
+  email String @unique @db.VarChar(120)
+  password String
+  name String @db.VarChar(100)
+  role Role @default(USER)
+  createdAt DateTime @default(now()) @map("created_at")
+  customer Customer?
+  reviews Review[]
+  @@map("users")
+}
+model Customer {
+  id Int @id @default(autoincrement())
+  fullName String @map("full_name") @db.VarChar(100)
+  email String @unique @db.VarChar(120)
+  phone String? @db.VarChar(15)
+  createdAt DateTime @default(now()) @map("created_at")
+  userId Int @unique @map("user_id")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders Order[]
+  @@map("customers")
+}
+model Categoria {
+  id Int @id @default(autoincrement())
+  nombre String @unique @db.VarChar(40)
+  descripcion String? @db.VarChar(200)
+  activa Boolean @default(true)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
-
+  prendas Prenda[]
+  @@map("categorias")
+}
+model Prenda {
+  id Int @id @default(autoincrement())
+  nombre String @unique @db.VarChar(80)
+  precio Decimal @db.Decimal(10,2)
+  stock Int @default(0)
+  talla String? @db.VarChar(10)
+  categoria String? @db.VarChar(40)
+  categoriaId Int? @map("categoria_id")
+  categoriaRelacion Categoria? @relation(fields: [categoriaId],references:[id],onDelete:SetNull)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  items OrderItem[]
+  reviews Review[]
+  @@index([categoriaId])
   @@map("prendas")
 }
+model Order {
+  id Int @id @default(autoincrement())
+  status OrderStatus @default(PENDING)
+  total Decimal @db.Decimal(10,2)
+  createdAt DateTime @default(now()) @map("created_at")
+  customerId Int @map("customer_id")
+  customer Customer @relation(fields:[customerId],references:[id],onDelete:Restrict)
+  items OrderItem[]
+  @@index([customerId])
+  @@index([status,createdAt])
+  @@map("orders")
+}
+model OrderItem {
+  orderId Int @map("order_id")
+  prendaId Int @map("prenda_id")
+  quantity Int
+  unitPrice Decimal @map("unit_price") @db.Decimal(10,2)
+  order Order @relation(fields:[orderId],references:[id],onDelete:Cascade)
+  prenda Prenda @relation(fields:[prendaId],references:[id],onDelete:Restrict)
+  @@id([orderId,prendaId])
+  @@map("order_items")
+}
 
-// Segunda entidad del modelo ER (Lab 2: todavía SIN @relation; las relaciones se agregan en el Lab 3).
-model Categoria {
-  id          Int      @id @default(autoincrement())
-  nombre      String   @unique @db.VarChar(40)
-  descripcion String?  @db.VarChar(200)
-  activa      Boolean  @default(true)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  @@map("categorias")
+// Tarjeta A · Reseñas de una prenda. Un usuario reseña una prenda como máximo una vez.
+// rating (1-5) se valida en review.service.js; la BD además lo protege con un CHECK (ver migración).
+model Review {
+  id Int @id @default(autoincrement())
+  rating Int @db.SmallInt
+  comment String? @db.VarChar(300)
+  createdAt DateTime @default(now()) @map("created_at")
+  userId Int @map("user_id")
+  prendaId Int @map("prenda_id")
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  prenda Prenda @relation(fields:[prendaId],references:[id],onDelete:Cascade)
+  @@unique([userId,prendaId])
+  @@index([prendaId,createdAt])
+  @@map("reviews")
 }

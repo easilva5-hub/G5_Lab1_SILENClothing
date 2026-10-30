@@ -1,51 +1,112 @@
-// Carga datos de prueba sin tocar la base a mano:  npx prisma db seed
-// Es IDEMPOTENTE: se puede ejecutar las veces que se quiera; siempre deja los mismos datos
-// (borra primero con deleteMany(), así no se duplican claves @unique ni falla).
 require("dotenv").config();
-const prisma = require("../src/db/prisma"); // el mismo cliente (con adaptador pg) que usa la API
-
-const categorias = [
-  { nombre: "Camisetas", descripcion: "Camisetas urbanas y oversize" },
-  { nombre: "Sudaderas", descripcion: "Hoodies y buzos" },
-  { nombre: "Pantalones", descripcion: "Cargo, jogger y jeans" },
-  { nombre: "Accesorios", descripcion: "Gorras, mochilas y complementos", activa: false },
-];
-
-// Los 4 registros del Lab 1 (data/prendas.json) + 2 nuevos.
-// «Camiseta Oversize» es el nombre @unique que usa Postman para probar el 409.
-const prendas = [
-  { nombre: "Camiseta Oversize", precio: 25.5, stock: 20, talla: "M", categoria: "Camisetas" },
-  { nombre: "Hoodie Negro", precio: 45, stock: 15, talla: "L", categoria: "Sudaderas" },
-  { nombre: "Pantalon Cargo", precio: 38, stock: 12, talla: "M", categoria: "Pantalones" },
-  { nombre: "Camiseta Oversize Blanca", precio: 30, stock: 15, talla: "M", categoria: "Camisetas" },
-  { nombre: "Hoodie Gris Basico", precio: 42, stock: 8, talla: "S", categoria: "Sudaderas" },
-  { nombre: "Gorra Snapback SILEN", precio: 18, stock: 30, categoria: "Accesorios" }, // talla opcional (null)
-];
-
+const bcrypt = require("bcryptjs");
+const prisma = require("../src/db/prisma");
 async function main() {
-  await prisma.$transaction(async (tx) => {
-    // 1. Limpia las tablas (en el Lab 3, en orden inverso a las relaciones)
-    await tx.prenda.deleteMany();
-    await tx.categoria.deleteMany();
-
-    // 2. Reinicia los contadores autoincrement para que los ids vuelvan a ser 1, 2, 3…
-    //    (deleteMany borra filas, pero no reinicia la secuencia de PostgreSQL)
-    await tx.$executeRaw`ALTER SEQUENCE categorias_id_seq RESTART WITH 1`;
-    await tx.$executeRaw`ALTER SEQUENCE prendas_id_seq RESTART WITH 1`;
-
-    // 3. Inserta los datos de prueba
-    await tx.categoria.createMany({ data: categorias });
-    await tx.prenda.createMany({ data: prendas });
+  await prisma.orderItem.deleteMany();
+  await prisma.order.deleteMany();
+  await prisma.customer.deleteMany();
+  await prisma.user.deleteMany();
+  await prisma.prenda.deleteMany();
+  await prisma.categoria.deleteMany();
+  const categories = await Promise.all(
+    ["Camisetas", "Sudaderas", "Pantalones", "Accesorios"].map((nombre) =>
+      prisma.categoria.create({ data: { nombre } }),
+    ),
+  );
+  const byName = Object.fromEntries(categories.map((c) => [c.nombre, c.id]));
+  await prisma.prenda.createMany({
+    data: [
+      {
+        nombre: "Camiseta Oversize",
+        precio: 25.5,
+        stock: 20,
+        talla: "M",
+        categoria: "Camisetas",
+        categoriaId: byName.Camisetas,
+      },
+      {
+        nombre: "Hoodie Negro",
+        precio: 45,
+        stock: 15,
+        talla: "L",
+        categoria: "Sudaderas",
+        categoriaId: byName.Sudaderas,
+      },
+      {
+        nombre: "Pantalon Cargo",
+        precio: 38,
+        stock: 12,
+        talla: "M",
+        categoria: "Pantalones",
+        categoriaId: byName.Pantalones,
+      },
+      {
+        nombre: "Camiseta Oversize Blanca",
+        precio: 30,
+        stock: 15,
+        talla: "M",
+        categoria: "Camisetas",
+        categoriaId: byName.Camisetas,
+      },
+      {
+        nombre: "Hoodie Gris Basico",
+        precio: 42,
+        stock: 8,
+        talla: "S",
+        categoria: "Sudaderas",
+        categoriaId: byName.Sudaderas,
+      },
+      {
+        nombre: "Gorra Snapback SILEN",
+        precio: 18,
+        stock: 30,
+        categoria: "Accesorios",
+        categoriaId: byName.Accesorios,
+      },
+    ],
   });
-
-  // 4. Muestra cuántos registros quedaron
-  const [totalPrendas, totalCategorias] = await Promise.all([prisma.prenda.count(), prisma.categoria.count()]);
-  console.log(`Seed completado: ${totalPrendas} prendas y ${totalCategorias} categorías.`);
+  await prisma.user.create({
+    data: {
+      email: "admin@silen.com",
+      name: "Administrador SILEN",
+      role: "ADMIN",
+      password: await bcrypt.hash("Admin123*", 10),
+      customer: {
+        create: { email: "admin@silen.com", fullName: "Administrador SILEN" },
+      },
+    },
+  });
+  const user = await prisma.user.create({
+    data: {
+      email: "cliente@silen.com",
+      name: "Cliente SILEN",
+      password: await bcrypt.hash("Cliente123*", 10),
+      customer: {
+        create: { email: "cliente@silen.com", fullName: "Cliente SILEN" },
+      },
+    },
+    include: { customer: true },
+  });
+  const prenda = await prisma.prenda.findUnique({
+    where: { nombre: "Camiseta Oversize" },
+  });
+  await prisma.order.create({
+    data: {
+      customerId: user.customer.id,
+      status: "DELIVERED",
+      total: prenda.precio,
+      items: {
+        create: [
+          { prendaId: prenda.id, quantity: 1, unitPrice: prenda.precio },
+        ],
+      },
+    },
+  });
+  console.log("Seed SILEN completado: 6 prendas, 2 usuarios, 1 pedido");
 }
-
 main()
   .catch((e) => {
     console.error(e);
-    process.exit(1);
+    process.exitCode = 1;
   })
   .finally(() => prisma.$disconnect());

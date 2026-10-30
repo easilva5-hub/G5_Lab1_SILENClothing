@@ -1,10 +1,11 @@
-
 const { Router } = require("express");
-const prendaRoutes = require("./prenda.routes");
-
-// Archivo principal de rutas: cada recurso se monta en su propio prefijo
 const router = Router();
-
-router.use("/prendas", prendaRoutes); // → /api/prendas
-
+const reviewRoutes = require("./review.routes");
+router.use("/prendas", require("./prenda.routes"));
+router.use("/auth", require("./auth.routes"));
+router.use("/orders", require("./order.routes"));
+router.use("/admin", require("./admin.routes"));
+// Tarjeta A
+router.use("/reviews", reviewRoutes); // DELETE /api/reviews/:id
+router.use("/products/:id/reviews", reviewRoutes.byPrenda); // POST/GET /api/products/:id/reviews (contrato)
 module.exports = router;

@@ -22,7 +22,7 @@ app.use(express.json()); // reemplaza a body-parser: llena req.body con el JSON 
 app.use(logger);
 
 // 2. Rutas: todas cuelgan del prefijo /api (ver routes/index.js)
-app.get("/", (req, res) => res.json({ api: "Lab 2 · API MVC con Prisma + PostgreSQL", estado: "ok" }));
+app.get("/", (req, res) => res.json({ api: "Lab 3 · Relaciones, autenticación y despliegue de API + PostgreSQL", estado: "ok" }));
 app.use("/api", routes);
 
 // 3. Middlewares que actúan DESPUÉS: ruta no encontrada y manejo de errores (siempre al final)
