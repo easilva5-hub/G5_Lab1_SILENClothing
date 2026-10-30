@@ -214,6 +214,9 @@ Ejecutar primero los logins de ADMIN y USER. Los scripts de la colección guarda
 | PEDRO ISAAC MAISINCHO PAUCAR |Implementación del sistema de pedidos y administración. Desarrollo de order.service.js, admin.service.js y sus rutas y controladores. Transacciones, control de stock, rollback, cancelaciones, filtros, paginación y pruebas con Postman.|
 
 
+
+
+
 ## 13. Declaración de uso de IA
 
 - **Herramienta utilizada:**.
@@ -240,3 +243,39 @@ Ejecutar primero los logins de ADMIN y USER. Los scripts de la colección guarda
 
 **Capas:** `src/routes/category.routes.js`, `product.routes.js` → `src/controllers/category.controller.js` → `src/services/category.service.js` → Prisma/PostgreSQL. Los errores del servicio se expresan mediante `HttpError`; duplicados Prisma `P2002` llegan a `errorHandler` como HTTP 409. Las rutas ADMIN usan `authenticateToken` y `requireRole("ADMIN")`.
 
+
+
+
+
+
+## Taller - Tarjeta C: Estados e historial de pedidos
+
+Se implementó el control de estados de los pedidos y un historial para registrar los cambios realizados.
+
+### Endpoints
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| PATCH | /api/admin/orders/:id/status | Permite al administrador cambiar el estado de un pedido. |
+| GET | /api/orders/:id/history | Permite consultar el historial del pedido al propietario o administrador. |
+| PATCH | /api/orders/:id/cancel | Permite al cliente cancelar un pedido pendiente o confirmado. |
+
+### Estados permitidos
+
+- PENDING → CONFIRMED
+- PENDING → CANCELLED
+- CONFIRMED → DELIVERED
+- CONFIRMED → CANCELLED
+
+Los pedidos DELIVERED y CANCELLED no permiten nuevos cambios de estado.
+
+### Validaciones
+
+- 400: Estado inválido.
+- 403: Usuario sin permisos.
+- 404: Pedido no encontrado.
+- 409: Cambio de estado no permitido.
+
+Los cambios se registran en OrderStatusHistory con el estado anterior, el nuevo estado, el usuario responsable, la fecha y una nota opcional.
+
+La actualización del estado y el registro del historial se realizan dentro de una transacción.

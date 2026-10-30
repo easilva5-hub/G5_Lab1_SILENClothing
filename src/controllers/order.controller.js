@@ -1,3 +1,4 @@
+
 const orderService = require("../services/order.service");
 const HttpError = require("../utils/httpError");
 
@@ -34,4 +35,17 @@ const cancel = async (req, res, next) => {
   }
 };
 
-module.exports = { create, listMine, cancel };
+// GET /api/orders/:id/history → consulta el historial de estados
+const getHistory = async (req, res, next) => {
+  try {
+    res.json(await orderService.getHistory(
+      req.user.id,
+      req.user.role,
+      parseId(req)
+    ));a
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { create, listMine, cancel, getHistory };
