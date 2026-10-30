@@ -214,8 +214,48 @@ Ejecutar primero los logins de ADMIN y USER. Los scripts de la colección guarda
 | PEDRO ISAAC MAISINCHO PAUCAR |Implementación del sistema de pedidos y administración. Desarrollo de order.service.js, admin.service.js y sus rutas y controladores. Transacciones, control de stock, rollback, cancelaciones, filtros, paginación y pruebas con Postman.|
 
 
+
+
+
 ## 13. Declaración de uso de IA
 
 - **Herramienta utilizada:**.
 - **Para qué se utilizó:** apoyo para comprender la arquitectura por capas con Express y Prisma, adaptar el kit del Lab 3 al emprendimiento SILEN Clothing, preparar código de autenticación y autorización, diseñar las relaciones, plantear las operaciones de pedidos con transacciones, construir consultas administrativas, organizar pruebas de Postman y redactar documentación.
 - **Qué corresponde verificar al equipo:** revisar el código, configurar PostgreSQL, aplicar las migraciones, ejecutar seed y endpoints, validar los códigos HTTP, comprobar la reversión de stock, ejecutar la colección de Postman y generar las evidencias. No se declara aquí que todas esas pruebas ya estén aprobadas.
+
+
+
+
+
+
+## Taller - Tarjeta C: Estados e historial de pedidos
+
+Se implementó el control de estados de los pedidos y un historial para registrar los cambios realizados.
+
+### Endpoints
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| PATCH | /api/admin/orders/:id/status | Permite al administrador cambiar el estado de un pedido. |
+| GET | /api/orders/:id/history | Permite consultar el historial del pedido al propietario o administrador. |
+| PATCH | /api/orders/:id/cancel | Permite al cliente cancelar un pedido pendiente o confirmado. |
+
+### Estados permitidos
+
+- PENDING → CONFIRMED
+- PENDING → CANCELLED
+- CONFIRMED → DELIVERED
+- CONFIRMED → CANCELLED
+
+Los pedidos DELIVERED y CANCELLED no permiten nuevos cambios de estado.
+
+### Validaciones
+
+- 400: Estado inválido.
+- 403: Usuario sin permisos.
+- 404: Pedido no encontrado.
+- 409: Cambio de estado no permitido.
+
+Los cambios se registran en OrderStatusHistory con el estado anterior, el nuevo estado, el usuario responsable, la fecha y una nota opcional.
+
+La actualización del estado y el registro del historial se realizan dentro de una transacción.
