@@ -82,6 +82,7 @@ const listByUser = async (userId) => {
   });
 };
 
+// Tarjeta C: cancelar pedidos pendientes o confirmados y registrar el historial
 const cancel = async (userId, orderId) => {
   const customer = await customerOf(userId);
 
@@ -98,12 +99,18 @@ const cancel = async (userId, orderId) => {
       throw new HttpError(403, "El pedido no pertenece al usuario");
 
     const updated = await tx.order.updateMany({
-      where: { id: orderId, status: "PENDING" },
+      where: {
+        id: orderId,
+        status: order.status,
+        AND: [
+          { status: { in: ["PENDING", "CONFIRMED"] } }
+        ]
+      },
       data: { status: "CANCELLED" }
     });
 
     if (updated.count === 0)
-      throw new HttpError(409, "Solo se pueden cancelar pedidos pendientes");
+      throw new HttpError(409, "No se puede cancelar este pedido");
 
     for (const item of order.items) {
       await tx.prenda.update({
@@ -111,6 +118,16 @@ const cancel = async (userId, orderId) => {
         data: { stock: { increment: item.quantity } }
       });
     }
+
+    await tx.orderStatusHistory.create({
+      data: {
+        orderId,
+        fromStatus: order.status,
+        toStatus: "CANCELLED",
+        changedById: userId,
+        note: "Cancelado por el cliente"
+      }
+    });
 
     return tx.order.findUnique({
       where: { id: orderId },
