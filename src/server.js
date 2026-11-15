@@ -2,6 +2,8 @@
 require("dotenv").config(); // debe ir ANTES de importar la app: db/prisma.js lee DATABASE_URL al cargarse
 const app = require("./app");
 const prisma = require("./db/prisma");
+const mongoose = require("mongoose");
+const connectMongo = require("./db/mongo");
 
 const PORT = process.env.PORT || 3000;
 
@@ -11,15 +13,18 @@ const start = async () => {
   // se hace una consulta real: si DATABASE_URL está mal o PostgreSQL está apagado, falla aquí.
   await prisma.$connect();
   await prisma.$queryRaw`SELECT 1`;
+  await connectMongo();
+
   const server = app.listen(PORT, () => {
-    console.log(`Servidor ejecutándose en http://localhost:${PORT} · PostgreSQL conectado`);
+    console.log(`Servidor ejecutándose en http://localhost:${PORT} · PostgreSQL y MongoDB conectados`);
   });
 
   // Cierre ordenado: detiene el servidor y libera las conexiones del pool
   const shutdown = (signal) => {
-    console.log(`${signal} recibido: cerrando servidor y conexión a la base de datos…`);
+    console.log(`${signal} recibido: cerrando servidor y conexiones a las bases de datos…`);
     server.close(async () => {
       await prisma.$disconnect();
+      await mongoose.disconnect();
       process.exit(0);
     });
   };

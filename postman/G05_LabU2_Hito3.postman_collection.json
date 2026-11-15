@@ -1,0 +1,153 @@
+{
+  "info": {
+    "name": "G05_LabU2_Hito3",
+    "description": "Laboratorio U2 · Hito 3 · SILEN Clothing (resenas_prendas)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 · POST válido → 201",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+              "const r = pm.response.json();",
+              "pm.test(\"Tiene _id de MongoDB\", () => pm.expect(r._id).to.match(/^[a-f0-9]{24}$/));",
+              "pm.test(\"El virtual stars aparece en la respuesta\", () => pm.expect(r.stars).to.eql(\"★★★★★\"));",
+              "pm.test(\"pre('validate') normalizó tags y talla\", () => {",
+              "  pm.expect(r.tags).to.eql([\"oversize\", \"comodidad\", \"buena-calidad\"]);",
+              "  pm.expect(r.details.sizePurchased).to.eql(\"M\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"prendaId\": 27,\n  \"userId\": 14,\n  \"rating\": 5,\n  \"comment\": \"La camiseta tiene buen corte, la tela es cómoda y el diseño combina con ropa urbana.\",\n  \"channel\": \"web\",\n  \"tags\": [\" Oversize \", \"oversize\", \"Comodidad\", \"Buena-Calidad\"],\n  \"details\": {\n    \"sizePurchased\": \"m\",\n    \"fit\": \"holgado\"\n  },\n  \"photos\": [\n    {\n      \"url\": \"https://thumbs.dreamstime.com/b/maqueta-blanca-y-negra-de-la-camiseta-frente-plantilla-camisa-del-espacio-en-blanco-deporte-visi%C3%B3n-trasera-hombres-ropa-las-155707322.jpg\",\n      \"description\": \"Vista frontal de la prenda\"\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/{{recurso}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "{{recurso}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "02 · POST vacío → 400 con mensajes de required",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"400 Bad Request\", () => pm.response.to.have.status(400));",
+              "const r = pm.response.json();",
+              "pm.test(\"Trae un mensaje por campo\", () => pm.expect(r.errors).to.be.an(\"array\").that.is.not.empty);",
+              "pm.test(\"Incluye mensajes exactos de required\", () => {",
+              "  pm.expect(r.errors).to.include(\"El ID de la prenda (prendaId) es obligatorio\");",
+              "  pm.expect(r.errors).to.include(\"El ID del usuario (userId) es obligatorio\");",
+              "  pm.expect(r.errors).to.include(\"La calificación (rating) es obligatoria\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/{{recurso}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "{{recurso}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "03 · POST inválido → 400 (enum, rango, match, validación propia)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"400 Bad Request\", () => pm.response.to.have.status(400));",
+              "const r = pm.response.json();",
+              "pm.test(\"Validación propia (entero) y rango en rating\", () => {",
+              "  pm.expect(r.errors).to.include(\"6.5 no es un número entero válido\");",
+              "  pm.expect(r.errors).to.include(\"La calificación máxima es 5\");",
+              "});",
+              "pm.test(\"Validación enum en channel y match en photo url\", () => {",
+              "  pm.expect(r.errors).to.include(\"El canal 'whatsapp' no es válido (use: web, tienda o redes_sociales)\");",
+              "  pm.expect(r.errors).to.include(\"La URL de la fotografía debe iniciar con http:// o https://\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"prendaId\": 27,\n  \"userId\": 14,\n  \"rating\": 6.5,\n  \"comment\": \"Malo\",\n  \"channel\": \"whatsapp\",\n  \"details\": {\n    \"sizePurchased\": \"L\",\n    \"fit\": \"gigante\"\n  },\n  \"photos\": [\n    {\n      \"url\": \"foto-sin-protocolo.jpg\",\n      \"description\": \"Prueba de match\"\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/{{recurso}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "{{recurso}}"
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "recurso",
+      "value": "resenas-prendas"
+    }
+  ]
+}
